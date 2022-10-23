@@ -1,13 +1,11 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import InputRequired
+from app import YOUTUBE
 
 class InputForm(FlaskForm):
     yt_id = StringField('Youtube ID', validators=[InputRequired()])
     submit = SubmitField('Submit')
-
-from app import YOUTUBE
-
 
 class YoutubeVideo:
     def __init__(self, id):

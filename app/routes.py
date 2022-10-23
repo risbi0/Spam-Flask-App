@@ -1,4 +1,4 @@
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify
 from app import app
 from app.input import InputForm, YoutubeVideo
 
