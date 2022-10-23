@@ -22,12 +22,14 @@ $(document).ready(function() {
                 $('#title').text(data.output[1]).show();
                 $('#channel').text(data.output[2]).show();
                 $('#comment-count').text(`${data.output[3]} comments`).show();
+                $('#error-container').addClass('opacity-0');
                 $('#error').text(null).show();
             } else {
                 $('#thumbnail').attr('src', null);
                 $('#title').text(null).show();
                 $('#channel').text(null).show();
                 $('#comment-count').text(null).show();
+                $('#error-container').removeClass('opacity-0');
                 $('#error').text(data.error).show();
             }
         });
