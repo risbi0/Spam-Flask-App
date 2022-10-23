@@ -1,11 +1,13 @@
 from flask import render_template, jsonify
 from app import app
 from app.input import InputForm, YoutubeVideo
+import time
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = InputForm()
     if form.validate_on_submit():
+        time.sleep(1) # delay so the loading animation is shown long enough
         yt = YoutubeVideo(form.yt_id.data)
         # display error
         if not yt.valid_id():

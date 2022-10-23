@@ -7,8 +7,21 @@ $.ajaxSetup({
     }
 });
 
+const waitForImageToLoad = src => {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', resolve);
+        image.addEventListener('error', reject);
+        image.src = src;
+    });
+}
+
 $('form').on('submit', e => {
     $('#details').hide();
+    $('#thumbnail').attr('src', null);
+    $('#error').text(null);
+    $('#error-container').addClass('opacity-0');
+    $('#loading').addClass('load-anim');
     $.ajax({
         type: 'POST',
         url: '/',
@@ -18,15 +31,16 @@ $('form').on('submit', e => {
     })
     .done(data => {
         if (data.output !== null) {
-            $('#details').show();
-            $('#thumbnail').attr('src', data.output[0]);
-            $('#title').text(data.output[1]);
-            $('#channel').text(data.output[2]);
-            $('#comment-count').text(`${data.output[3]} comments`);
-            $('#error-container').addClass('opacity-0');
-            $('#error').text(null);
+            waitForImageToLoad(data.output[0]).then(() => {
+                $('#loading').removeClass('load-anim');
+                $('#thumbnail').attr('src', data.output[0]);
+                $('#title').text(data.output[1]);
+                $('#channel').text(data.output[2]);
+                $('#comment-count').text(`${data.output[3]} comments`);
+                $('#details').show();
+            });
         } else {
-            $('#thumbnail').attr('src', null);
+            $('#loading').removeClass('load-anim');
             $('#title').text(null);
             $('#channel').text(null);
             $('#comment-count').text(null);
