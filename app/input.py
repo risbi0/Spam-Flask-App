@@ -11,37 +11,38 @@ class InputForm(FlaskForm):
 def extract_id(s):
     regex_pattern = re.compile(r'(?<=watch\?v=|&v=|youtu.be/|/embed/|/[v|e]/|Fv%3D)([A-Za-z0-9-_]){11}')
     match = re.search(regex_pattern, s.split()[0])
-    if match == None:
-        return ''
-    else:
-        return match.group()
+    return '' if match == None else match.group()
 
 class YoutubeVideo:
     def __init__(self, id):
         self.id = extract_id(id)
         request = YOUTUBE.videos().list(part='id,snippet,statistics', id=self.id)
-        self.response = request.execute()
+        requested = request.execute()
+        try:
+            self.response = requested['items'][0]
+        except IndexError:
+            self.response = None
 
     def valid_id(self):
-        return self.response['items']
+        return self.response
 
     def comments_disabled(self):
-        return 'commentCount' not in self.response['items'][0]['statistics']
+        return 'commentCount' not in self.response['statistics']
 
     def no_comments(self):
-        return int(self.response['items'][0]['statistics']['commentCount']) == 0
+        return int(self.response['statistics']['commentCount']) == 0
     
     def too_many_comments(self):
-        return int(self.response['items'][0]['statistics']['commentCount']) > 18000    
+        return int(self.response['statistics']['commentCount']) > 18000    
 
     def get_details(self):
         # old video thumbnail fallback
-        if 'maxres' not in self.response['items'][0]['snippet']['thumbnails']:
-            thumbnail_url = self.response['items'][0]['snippet']['thumbnails']['high']['url']
+        if 'maxres' not in self.response['snippet']['thumbnails']:
+            thumbnail_url = self.response['snippet']['thumbnails']['high']['url']
         else:
-            thumbnail_url = self.response['items'][0]['snippet']['thumbnails']['maxres']['url']
+            thumbnail_url = self.response['snippet']['thumbnails']['maxres']['url']
         # thumbnail url, channel name, video title, comment count
         return (thumbnail_url,
-                self.response['items'][0]['snippet']['channelTitle'],
-                self.response['items'][0]['snippet']['title'],
-                self.response['items'][0]['statistics']['commentCount'])
+                self.response['snippet']['channelTitle'],
+                self.response['snippet']['title'],
+                self.response['statistics']['commentCount'])
