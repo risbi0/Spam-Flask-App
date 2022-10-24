@@ -30,7 +30,7 @@ $('form').on('submit', e => {
         }
     })
     .done(data => {
-        if (data.output !== null) {
+        if (data.output && typeof data.output !== 'undefined') {
             waitForImageToLoad(data.output[0]).then(() => {
                 $('#loading').removeClass('load-anim');
                 $('#thumbnail').attr('src', data.output[0]);

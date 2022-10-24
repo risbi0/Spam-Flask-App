@@ -11,14 +11,16 @@ def index():
         yt = YoutubeVideo(form.yt_id.data)
         # display error
         if not yt.valid_id():
-            return jsonify({'output': None, 'error': 'Invalid ID.'})
-        elif yt.too_many_comments():
-            return jsonify({'output': None, 'error': 'Video has too many comments (>18000). Please pick another video.'})
+            return jsonify({'error': 'Invalid YouTube video URL. Please enter a valid one.'})
+        elif yt.comments_disabled():
+            return jsonify({'error': 'Video has comments disabled. Please pick another video.'})
         elif yt.no_comments():
-            return jsonify({'output': None, 'error': 'Video has no comments. Please pick another video.'})
+            return jsonify({'error': 'Video has no comments. Please pick another video.'})
+        elif yt.too_many_comments():
+            return jsonify({'error': 'Video has too many comments (>18000). Please pick another video.'})
         # get details
         else:
             thumbnail_src, ch_name, vid_title, comment_count = yt.get_details()
-            return jsonify({'output': [thumbnail_src, ch_name, vid_title, comment_count], 'error': None})
+            return jsonify({'output': [thumbnail_src, ch_name, vid_title, comment_count]})
 
     return render_template('index.html', form=form)
