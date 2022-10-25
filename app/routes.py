@@ -1,10 +1,12 @@
-from flask import render_template, jsonify
+from flask import render_template, jsonify, Response
 from app import app
 from app.input import InputForm, YoutubeVideo
 import time
 
+yt = None
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    global yt
     form = InputForm()
     if form.validate_on_submit():
         time.sleep(1) # delay so the loading animation is shown long enough
@@ -23,4 +25,9 @@ def index():
             thumbnail_src, ch_name, vid_title, comment_count = yt.get_details()
             return jsonify({'output': [thumbnail_src, ch_name, vid_title, comment_count]})
 
-    return render_template('index.html', form=form)
+    return render_template('index.html', form=form)  
+
+@app.route('/process', methods=['GET','POST'])
+def process():
+    global yt
+    return Response(yt.comment_threads(), mimetype='text/event-stream')

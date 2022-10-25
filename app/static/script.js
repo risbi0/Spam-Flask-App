@@ -20,7 +20,9 @@ $('form').on('submit', e => {
     $('#details').hide();
     $('#thumbnail').attr('src', null);
     $('#error').text(null);
+    $('#result').text(null);
     $('#error-container').addClass('opacity-0');
+    $('#progress').addClass('opacity-0');
     $('#loading').addClass('load-anim');
     $.ajax({
         type: 'POST',
@@ -48,5 +50,20 @@ $('form').on('submit', e => {
             $('#error').text(data.error);
         }
     });
+    e.preventDefault();
+});
+
+$('#process').on('click', e => {
+    $('#progress').removeClass('opacity-0');
+    $('#result').text('0');
+    $('#comment-count-2').text($('#comment-count').text());
+    var source = new EventSource('/process');
+    source.onmessage = (e) => {
+        var parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
+        $('#result').text(parsed_data['progress']);
+        if (parsed_data['done'] == 'true') {
+            source.close();
+        }
+    }
     e.preventDefault();
 });

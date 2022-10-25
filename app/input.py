@@ -1,3 +1,4 @@
+import sys
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import InputRequired
@@ -22,6 +23,7 @@ class YoutubeVideo:
             self.response = requested['items'][0]
         except IndexError:
             self.response = None
+        self.comments = []
 
     def valid_id(self):
         return self.response
@@ -46,3 +48,63 @@ class YoutubeVideo:
                 self.response['snippet']['channelTitle'],
                 self.response['snippet']['title'],
                 self.response['statistics']['commentCount'])
+
+    def process_replies(self, response_items):
+        for response in response_items:
+            comment = {}
+            comment['id'] = response['id']
+            comment['comment'] = response['snippet']['textOriginal']
+            self.comments.append(comment)
+            yield f"data: {{'progress': '{len(self.comments)}', 'done': 'false'}}\n\n"
+
+    def process_comments(self, response_items):
+        for response in response_items:
+            # top level comment
+            comment = {}
+            comment['id'] = response['snippet']['topLevelComment']['id']
+            comment['comment'] = response['snippet']['topLevelComment']['snippet']['textOriginal']
+            self.comments.append(comment)
+            # check for replies
+            if 'replies' in response.keys():
+                parent_id = response['snippet']['topLevelComment']['id']
+                request = YOUTUBE.comments().list(
+                    part='snippet',
+                    parentId=parent_id,
+                    maxResults=100
+                )
+                response = request.execute()
+                yield from self.process_replies(response['items'])
+
+                # get the rest of the replies (for >100 replies)
+                while response.get('nextPageToken', None):
+                    request = YOUTUBE.comments().list(
+                        part='snippet',
+                        parentId=parent_id,
+                        maxResults=100,
+                        pageToken=response['nextPageToken']
+                    )
+                    response = request.execute()
+                    yield from self.process_replies(response['items']) 
+
+    def comment_threads(self):
+        # get comments
+        request = YOUTUBE.commentThreads().list(
+            part='snippet,replies',
+            videoId=self.id,
+            maxResults=100
+        )
+        response = request.execute()
+        yield from self.process_comments(response['items'])
+
+        # get the rest of the comments
+        while response.get('nextPageToken', None):
+            request = YOUTUBE.commentThreads().list(
+                part='snippet,replies',
+                videoId=self.id,
+                maxResults=100,
+                pageToken=response['nextPageToken']
+            )
+            response = request.execute()
+            yield from self.process_comments(response['items'])
+
+        yield f"data: {{'progress': '{len(self.comments)}', 'done': 'true'}}\n\n"
