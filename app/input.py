@@ -1,8 +1,8 @@
-import sys
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import InputRequired
 from app import YOUTUBE
+from time import time
 import regex as re
 
 class InputForm(FlaskForm):
@@ -13,6 +13,9 @@ def extract_id(s):
     regex_pattern = re.compile(r'(?<=watch\?v=|&v=|youtu.be/|/embed/|/[v|e]/|Fv%3D)([A-Za-z0-9-_]){11}')
     match = re.search(regex_pattern, s.split()[0])
     return '' if match == None else match.group()
+    
+def check_time(start):
+    return time() - start > 20
 
 class YoutubeVideo:
     def __init__(self, id):
@@ -23,6 +26,9 @@ class YoutubeVideo:
             self.response = requested['items'][0]
         except IndexError:
             self.response = None
+        self.once = True
+        self.comments = []
+        self.comment_response = self.last_token = None
 
     def valid_id(self):
         return self.response
@@ -54,7 +60,7 @@ class YoutubeVideo:
             comment['id'] = response['id']
             comment['comment'] = response['snippet']['textOriginal']
             self.comments.append(comment)
-            yield f"data: {{'progress': '{len(self.comments)}', 'done': 'false'}}\n\n"
+            yield f"data: {{'progress': '{len(self.comments)}', 'repeat': 'False', 'done': 'False'}}\n\n"
 
     def process_comments(self, response_items):
         for response in response_items:
@@ -83,28 +89,35 @@ class YoutubeVideo:
                         pageToken=response['nextPageToken']
                     )
                     response = request.execute()
-                    yield from self.process_replies(response['items']) 
+                    yield from self.process_replies(response['items'])
 
     def comment_threads(self):
-        self.comments = []
-        # get comments
-        request = YOUTUBE.commentThreads().list(
-            part='snippet,replies',
-            videoId=self.id,
-            maxResults=100
-        )
-        response = request.execute()
-        yield from self.process_comments(response['items'])
+        start = time()
+        if self.once:
+            self.once = False
+            # get comments
+            request = YOUTUBE.commentThreads().list(
+                part='snippet,replies',
+                videoId=self.id,
+                maxResults=100
+            )
+            self.comment_response = request.execute()
+            yield from self.process_comments(self.comment_response['items'])
 
         # get the rest of the comments
-        while response.get('nextPageToken', None):
+        while self.comment_response.get('nextPageToken', None):
+            self.last_token = self.comment_response['nextPageToken']
+            if check_time(start): break
+
             request = YOUTUBE.commentThreads().list(
                 part='snippet,replies',
                 videoId=self.id,
                 maxResults=100,
-                pageToken=response['nextPageToken']
+                pageToken=self.last_token
             )
-            response = request.execute()
-            yield from self.process_comments(response['items'])
+            self.comment_response = request.execute()
+            yield from self.process_comments(self.comment_response['items'])
 
-        yield f"data: {{'progress': '{len(self.comments)}', 'done': 'true'}}\n\n"
+        yield f"data: {{'progress': '{len(self.comments)}', \
+                        'repeat': '{check_time(start)}', \
+                        'done': '{not check_time(start)}'}}\n\n"

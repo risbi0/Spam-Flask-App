@@ -40,7 +40,7 @@ $('form').on('submit', e => {
                 $('#details').show();
             });
         } else {
-            $('#loading').removeClass('load-anim');
+            $('#loading-1').removeClass('load-anim');
             $('#title, #channel, #comment-count').text(null);
             $('#error-container').removeClass('opacity-0');
             $('#error').text(data.error);
@@ -54,15 +54,21 @@ $('#process').on('click', e => {
     $('#loading-2').addClass('load-anim');
     $('#result').text('0');
     $('#comment-count-2').text($('#comment-count').text().replace(/[^0-9]/g, ''));
-    var source = new EventSource('/process');
-    source.onmessage = (e) => {
-        var parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
-        $('#result').text(parsed_data['progress']);
-        if (parsed_data['done'] == 'true') {
-            console.log('done');
-            source.close();
-            $('#loading-2').removeClass('load-anim');
+    (function loop() {
+        var source = new EventSource('/process');
+        source.onmessage = (e) => {
+            var parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
+            $('#result').text(parsed_data['progress']);
+            if (parsed_data['repeat'] == 'True') {
+                console.log('Request is taking over 20 seconds to execute. Restarting request...');
+                source.close();
+                loop();
+            } else if (parsed_data['done'] == 'True') {
+                $('#loading-2').removeClass('load-anim');
+                console.log('Done.');
+                source.close();
+            }
         }
-    }
+    }());
     e.preventDefault();
 });
