@@ -19,11 +19,9 @@ const waitForImageToLoad = src => {
 $('form').on('submit', e => {
     $('#details').hide();
     $('#thumbnail').attr('src', null);
-    $('#error').text(null);
-    $('#result').text(null);
-    $('#error-container').addClass('opacity-0');
-    $('#progress').addClass('opacity-0');
-    $('#loading').addClass('load-anim');
+    $('#error, #result').text(null);
+    $('#error-container, #progress').addClass('opacity-0');
+    $('#loading-1').addClass('load-anim');
     $.ajax({
         type: 'POST',
         url: '/',
@@ -34,7 +32,7 @@ $('form').on('submit', e => {
     .done(data => {
         if (data.output && typeof data.output !== 'undefined') {
             waitForImageToLoad(data.output[0]).then(() => {
-                $('#loading').removeClass('load-anim');
+                $('#loading-1').removeClass('load-anim');
                 $('#thumbnail').attr('src', data.output[0]);
                 $('#title').text(data.output[1]);
                 $('#channel').text(data.output[2]);
@@ -43,9 +41,7 @@ $('form').on('submit', e => {
             });
         } else {
             $('#loading').removeClass('load-anim');
-            $('#title').text(null);
-            $('#channel').text(null);
-            $('#comment-count').text(null);
+            $('#title, #channel, #comment-count').text(null);
             $('#error-container').removeClass('opacity-0');
             $('#error').text(data.error);
         }
@@ -55,14 +51,17 @@ $('form').on('submit', e => {
 
 $('#process').on('click', e => {
     $('#progress').removeClass('opacity-0');
+    $('#loading-2').addClass('load-anim');
     $('#result').text('0');
-    $('#comment-count-2').text($('#comment-count').text());
+    $('#comment-count-2').text($('#comment-count').text().replace(/[^0-9]/g, ''));
     var source = new EventSource('/process');
     source.onmessage = (e) => {
         var parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
         $('#result').text(parsed_data['progress']);
         if (parsed_data['done'] == 'true') {
+            console.log('done');
             source.close();
+            $('#loading-2').removeClass('load-anim');
         }
     }
     e.preventDefault();

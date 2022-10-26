@@ -26,15 +26,16 @@
             </form>
         </div>
         <div class="flex grow shrink basis-auto justify-center px-10 py-20 bg-slate-800">
-            <div id="loading"></div>
+            <div id="loading-1"></div>
             <div id="details" class="text-center hidden">
                 <img id="thumbnail" class="">
                 <p class="my-2"><span id="title" class="text-2xl"></span></p>
                 <p class="my-2"><span id="channel" class="text-xl"></span></p>
                 <p class="my-2"><span id="comment-count" class="text-md"></span></p>
-                <button type="button" id="process">text</button>
+                <button type="button" id="process" class="mt-6 bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 px-4 py-2 rounded-md font-semibold text-lg">Analyze</button>
                 <div id="progress" class="opacity-0">
-                    <p><span id="result"></span> / <span id="comment-count-2"></span></p>
+                    <div id="loading-2"></div>
+                    <p class="mt-4"><span id="result"></span> / <span id="comment-count-2"></span></p>
                 </div>
             </div>
         </div>

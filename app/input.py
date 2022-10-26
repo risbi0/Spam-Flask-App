@@ -23,7 +23,6 @@ class YoutubeVideo:
             self.response = requested['items'][0]
         except IndexError:
             self.response = None
-        self.comments = []
 
     def valid_id(self):
         return self.response
@@ -87,6 +86,7 @@ class YoutubeVideo:
                     yield from self.process_replies(response['items']) 
 
     def comment_threads(self):
+        self.comments = []
         # get comments
         request = YOUTUBE.commentThreads().list(
             part='snippet,replies',
