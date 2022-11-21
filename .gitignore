@@ -4,4 +4,3 @@ __pycache__
 node_modules
 client_secret.json
 *.csv
-*.data-00000-of-00001
