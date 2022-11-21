@@ -20,7 +20,7 @@ $('form').on('submit', e => {
     $('#details').hide();
     $('#thumbnail').attr('src', null);
     $('#error, #result').text(null);
-    $('#error-container, #progress').addClass('opacity-0');
+    $('#error-container, #progress-container').addClass('opacity-0');
     $('#loading-1').addClass('load-anim');
     $.ajax({
         type: 'POST',
@@ -50,23 +50,29 @@ $('form').on('submit', e => {
 });
 
 $('#process').on('click', e => {
-    $('#progress').removeClass('opacity-0');
+    $('#progress-container').removeClass('opacity-0');
     $('#loading-2').addClass('load-anim');
-    $('#result').text('0');
-    $('#comment-count-2').text($('#comment-count').text().replace(/[^0-9]/g, ''));
+    $('#progress').text('0');
+    $('#total-num').text($('#comment-count').text().replace(/[^0-9]/g, ''));
     (function loop() {
-        var source = new EventSource('/process');
+        let source = new EventSource('/process');
         source.onmessage = (e) => {
-            var parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
-            $('#result').text(parsed_data['progress']);
+            let parsed_data = JSON.parse(e.data.replace(/'/g,'"'));
+            $('#progress').text(parsed_data['progress']);
+            $('#desc').text(parsed_data['desc']);
             if (parsed_data['repeat'] == 'True') {
                 console.log('Request is taking over 20 seconds to execute. Restarting request...');
                 source.close();
                 loop();
             } else if (parsed_data['done'] == 'True') {
+                let output = parsed_data['output'];
+                console.log(output);
+
                 $('#loading-2').removeClass('load-anim');
                 console.log('Done.');
                 source.close();
+            } else if (parsed_data['display_total_num'] == '') {
+                $('#total-num').text(parsed_data['total_num']);
             }
         }
     }());
