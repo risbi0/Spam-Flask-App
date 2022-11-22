@@ -23,3 +23,35 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+table {
+    @apply w-full;
+}
+
+th {
+    @apply text-lg;
+}
+
+tr {
+    @apply leading-8;
+}
+
+tbody tr:nth-child(odd) {
+    @apply bg-slate-700;
+}
+
+tr:not(tbody tr:last-child) {
+    @apply border-b;
+}
+
+th, td {
+    @apply px-4;
+}
+
+tr td:first-child {
+    @apply w-1/4;
+}
+
+tr td:last-child {
+    @apply text-center;
+}
