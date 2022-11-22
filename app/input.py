@@ -9,6 +9,7 @@ from app import YOUTUBE
 from time import time
 import regex as re
 import pandas as pd
+import json
 
 yt_vid_id = re.compile(r'(?<=watch\?v=|&v=|youtu.be/|/embed/|/[v|e]/|Fv%3D)([A-Za-z0-9-_]){11}')
 wordnet_lemmatizer = WordNetLemmatizer()
@@ -202,19 +203,10 @@ class ProcessComments:
 
         yield from self.analyze()
 
-        # convert dataframe that can be read as an object by javascript
-        #spam = self.df[self.df['score'] >= 90]
-        #dict_list = f'{spam.to_dict()}'.split(' ')
-        dict_list = f'{self.df.to_dict()}'.split(' ')
-        for index, item in enumerate(dict_list):
-            if item[-1] == ':':
-                if item[0] == '{':
-                    dict_list[index] = '{' + "\"{0}\":".format(item[1:-1].replace("'", ''))
-                else:
-                    dict_list[index] = "\"{0}\":".format(item[:-1].replace("'", ''))
-
-        output = ' '.join(dict_list)
-
+        # convert dataframe into json as a string for viewing in browser
+        spam = self.df[self.df['score'] >= 90].sort_values(['score'], ascending=False).reset_index(drop=True)
+        json_str = json.dumps(spam.to_dict())
+        output = re.sub("""(?<=".*)'(?=.*")""", '' , json_str)
         yield f"data: {{'desc': 'Done.', \
                         'progress': '{len(self.df)}', \
                         'output' : {output}, \
