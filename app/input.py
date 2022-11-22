@@ -211,18 +211,17 @@ class ProcessComments:
                         'progress': '{len(self.df)}', \
                         'output' : {output}, \
                         'done': 'True'}}\n\n"
-        self.df.to_csv('z.csv',index=False)
+
+        #self.df.to_csv('z.csv',index=False)
         
-        # todo: serve console in browser
         '''
         from google_auth_oauthlib.flow import InstalledAppFlow
         from googleapiclient.discovery import build
         flow = InstalledAppFlow.from_client_secrets_file('client_secrets.json', ["https://www.googleapis.com/auth/youtube.force-ssl"])
         credentials = flow.run_console()
         youtube = build('youtube', 'v3', credentials=credentials)
-        '''
 
         for id in self.df[self.df['score'] >= 90]['id']:
-            #request = youtube.comments().markAsSpam(id=id)
-            #request.execute()
-            pass
+            request = youtube.comments().markAsSpam(id=id)
+            request.execute()
+        '''
