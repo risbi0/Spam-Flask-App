@@ -50,6 +50,7 @@ th, td {
 
 tr td:first-child {
     @apply w-1/4;
+    overflow-wrap: anywhere;
 }
 
 tr td:last-child {
