@@ -5,8 +5,8 @@ from tensorflow.keras.models import load_model
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-from app import YOUTUBE
-from time import time
+from time import time, sleep
+import app as init
 import regex as re
 import pandas as pd
 import json
@@ -29,7 +29,7 @@ def check_time(start):
 class YoutubeVideo:
     def __init__(self, id):
         self.id = extract_id(id)
-        request = YOUTUBE.videos().list(part='id,snippet,statistics', id=self.id)
+        request = init.youtube.videos().list(part='id,snippet,statistics', id=self.id)
         requested = request.execute()
         try:
             self.response = requested['items'][0]
@@ -83,7 +83,7 @@ class YoutubeVideo:
             # check for replies
             if 'replies' in response.keys():
                 parent_id = response['snippet']['topLevelComment']['id']
-                request = YOUTUBE.comments().list(
+                request = init.youtube.comments().list(
                     part='snippet',
                     parentId=parent_id,
                     maxResults=100
@@ -93,7 +93,7 @@ class YoutubeVideo:
 
                 # get the rest of the replies (for >100 replies)
                 while response.get('nextPageToken', None):
-                    request = YOUTUBE.comments().list(
+                    request = init.youtube.comments().list(
                         part='snippet',
                         parentId=parent_id,
                         maxResults=100,
@@ -107,7 +107,7 @@ class YoutubeVideo:
         if self.once:
             self.once = False
             # get comments
-            request = YOUTUBE.commentThreads().list(
+            request = init.youtube.commentThreads().list(
                 part='snippet,replies',
                 videoId=self.id,
                 maxResults=100
@@ -120,7 +120,7 @@ class YoutubeVideo:
             self.last_token = self.comment_response['nextPageToken']
             if check_time(start): break
 
-            request = YOUTUBE.commentThreads().list(
+            request = init.youtube.commentThreads().list(
                 part='snippet,replies',
                 videoId=self.id,
                 maxResults=100,
@@ -140,9 +140,7 @@ class YoutubeVideo:
 class ProcessComments:
     def __init__(self, comments):
         self.df = pd.DataFrame.from_records(comments)
-        #self.df=self.df.reset_index(drop=True)
         self.progress = 0
-        #self.start = time()
 
     def removeEmojis(self, text):
         pattern = re.compile(
@@ -190,6 +188,36 @@ class ProcessComments:
                             'display_total_num': '', \
                             'total_num': '{len(self.df)}'}}\n\n"
 
+    def report(self):
+        # convert dataframe into json string for viewing in browser
+        spam = self.df[self.df['score'] >= 90].sort_values(['score'], ascending=False).reset_index(drop=True)
+        spam_len = len(spam)
+        json_str = json.dumps(spam.to_dict())
+        output = re.sub("""(?<=".*)'(?=.*")""", '' , json_str)
+
+        # report spam comments
+        for i in range(spam_len):
+            '''
+            The markAsSpam() quota cost is too much for the free daily quota.
+            Instead, a delay is provided to simulate the latency between the
+            API client and the request of reporting comment ID's.
+
+            request = init.youtube.comments().markAsSpam(id=spam['id'][i])
+            request.execute()
+            '''
+            sleep(0.4)
+
+            yield f"data: {{'desc': '{spam_len} identified spam comments. Reporting...', \
+                            'progress': '{i + 1}', \
+                            'display_total_num': '', \
+                            'total_num': '{spam_len}'}}\n\n"
+
+        yield f"data: {{'desc': 'Done.', \
+                        'progress': '{len(self.df)}', \
+                        'output' : {output}, \
+                        'done': 'True'}}\n\n"
+
+
     def identifySpam(self):
         yield f"data: {{'desc': 'Extracting applicable comments...', \
                         'progress': '{len(self.df)}'}}\n\n"
@@ -203,25 +231,4 @@ class ProcessComments:
 
         yield from self.analyze()
 
-        # convert dataframe into json as a string for viewing in browser
-        spam = self.df[self.df['score'] >= 90].sort_values(['score'], ascending=False).reset_index(drop=True)
-        json_str = json.dumps(spam.to_dict())
-        output = re.sub("""(?<=".*)'(?=.*")""", '' , json_str)
-        yield f"data: {{'desc': 'Done.', \
-                        'progress': '{len(self.df)}', \
-                        'output' : {output}, \
-                        'done': 'True'}}\n\n"
-
-        #self.df.to_csv('z.csv',index=False)
-        
-        '''
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from googleapiclient.discovery import build
-        flow = InstalledAppFlow.from_client_secrets_file('client_secrets.json', ["https://www.googleapis.com/auth/youtube.force-ssl"])
-        credentials = flow.run_console()
-        youtube = build('youtube', 'v3', credentials=credentials)
-
-        for id in self.df[self.df['score'] >= 90]['id']:
-            request = youtube.comments().markAsSpam(id=id)
-            request.execute()
-        '''
+        yield from self.report()
