@@ -3,4 +3,3 @@ __pycache__
 .flaskenv
 node_modules
 client_secret.json
-*.csv
